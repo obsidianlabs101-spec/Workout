@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+<title>Weekly Load — Workout Plan</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#101014">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Fonts load from the web the first time and get cached by the browser.
+   If there's no connection, everything still works — it just falls
+   back to system fonts below instead of Bebas Neue / IBM Plex Mono. */
+:root {
+  --bg: #101014;
+  --surface: #1b1b21;
+  --surface-raised: #232329;
+  --border: #2d2d35;
+
+  --text: #eae7e1;
+  --text-muted: #8b8f97;
+
+  --accent: #d34f2c;
+  --accent-soft: #d34f2c26;
+  --accent-2: #f2c14e;
+
+  --font-display: 'Bebas Neue', 'Arial Narrow', sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --radius: 6px;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  background-image:
+    radial-gradient(circle at 15% 0%, #1a1a20 0%, transparent 45%),
+    radial-gradient(circle at 85% 10%, #17171b 0%, transparent 40%);
+  color: var(--text);
+  font-family: var(--font-body);
+  line-height: 1.5;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 3px; }
+
+/* ---- Hero ---- */
+.hero { max-width: 780px; margin: 0 auto; padding: 3.5rem 1.5rem 2rem; text-align: center; }
+.hero__eyebrow { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.22em; color: var(--accent-2); margin: 0 0 1.1rem; }
+.hero__title { font-family: var(--font-display); font-size: clamp(3.6rem, 14vw, 7.5rem); line-height: 0.85; letter-spacing: 0.01em; margin: 0; text-shadow: 0 0 40px var(--accent-soft); }
+.hero__sub { max-width: 46ch; margin: 1.4rem auto 0; color: var(--text-muted); font-size: 1rem; }
+.hero__run { display: inline-flex; align-items: center; gap: 0.6rem; margin-top: 1.6rem; padding: 0.5rem 1rem; background: var(--surface); border: 1px solid var(--border); border-radius: 999px; font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted); }
+.run-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-2); flex-shrink: 0; box-shadow: 0 0 0 3px #f2c14e22; }
+
+/* ---- Day nav ("the barbell") ---- */
+.bar { position: relative; max-width: 920px; margin: 0 auto; padding: 0 1.25rem 0.5rem; }
+.bar__rail { position: absolute; left: 1.25rem; right: 1.25rem; top: 50%; height: 4px; background: linear-gradient(90deg, #3a3a42, #4a4a54 50%, #3a3a42); border-radius: 2px; transform: translateY(-50%); z-index: 0; }
+.bar__plates { position: relative; z-index: 1; display: flex; gap: 0.55rem; overflow-x: auto; padding: 0.6rem 0.2rem 1rem; scrollbar-width: thin; -webkit-overflow-scrolling: touch; }
+.plate-tab { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 0.3rem; width: 70px; height: 70px; border-radius: 50%; border: 3px solid var(--border); background: var(--surface); color: var(--text-muted); font-family: var(--font-mono); cursor: pointer; transition: transform 0.15s ease, border-color 0.15s ease, color 0.15s ease, background 0.15s ease; }
+.plate-tab:hover { transform: translateY(-3px); border-color: #4a4a54; }
+.plate-tab__day { font-size: 0.66rem; letter-spacing: 0.08em; }
+.plate-tab__focus { font-size: 0.58rem; color: var(--text-muted); max-width: 58px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.plate-tab.is-active { background: var(--accent); border-color: var(--accent); color: #14100c; transform: translateY(-5px) scale(1.04); box-shadow: 0 8px 22px -6px var(--accent-soft); }
+.plate-tab.is-active .plate-tab__focus { color: #2b1409; }
+.plate-tab.is-rest { border-style: dashed; }
+@media (prefers-reduced-motion: reduce) { .plate-tab, .plate-tab:hover, .plate-tab.is-active { transition: none; transform: none; } }
+
+/* ---- Day panel ---- */
+.panel { max-width: 780px; margin: 1.5rem auto 3rem; padding: 0 1.25rem; }
+.day-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1.75rem 1.4rem; animation: rise 0.25s ease; }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .day-card { animation: none; } }
+.day-card__header { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 0.5rem; border-bottom: 1px solid var(--border); padding-bottom: 1.1rem; margin-bottom: 1.3rem; }
+.day-card__day { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.15em; color: var(--text-muted); }
+.day-card__focus { font-family: var(--font-display); font-size: 2.4rem; line-height: 1; color: var(--accent-2); margin: 0.15rem 0 0; }
+.day-card__meta { font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-muted); text-align: right; }
+.day-card__reset { font-family: var(--font-mono); font-size: 0.66rem; color: var(--text-muted); background: none; border: 1px solid var(--border); border-radius: 999px; padding: 0.3rem 0.7rem; cursor: pointer; margin-top: 0.4rem; }
+.day-card__reset:hover { color: var(--text); border-color: #4a4a54; }
+
+.exercise-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.6rem; }
+.exercise-row { display: flex; align-items: center; gap: 0.85rem; padding: 0.8rem 0.9rem; background: var(--surface-raised); border: 1px solid var(--border); border-radius: var(--radius); flex-wrap: wrap; }
+.exercise-row.is-done { border-color: var(--accent-2); }
+.exercise-row.is-done .plate-badge { border-color: var(--accent-2); }
+
+.plate-badge { flex: 0 0 auto; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-family: var(--font-mono); font-weight: 500; font-size: 0.82rem; color: var(--text);
+  background: radial-gradient(circle at center, var(--surface) 34%, transparent 35%), conic-gradient(from 180deg, #3a3a42, #4a4a54, #3a3a42);
+  border: 1px solid var(--border); }
+
+.exercise-name { font-size: 0.95rem; flex: 1 1 140px; }
+.exercise-status { font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.08em; color: var(--accent-2); flex: 0 0 auto; }
+.start-btn { flex: 0 0 auto; font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.06em; color: var(--text); background: transparent; border: 1px solid var(--border); border-radius: 999px; padding: 0.4rem 0.85rem; cursor: pointer; transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease; }
+.start-btn:hover { background: var(--accent); border-color: var(--accent); color: #14100c; }
+
+.rest-note { display: flex; align-items: center; gap: 0.9rem; padding: 1.3rem 1rem; color: var(--text-muted); font-family: var(--font-mono); font-size: 0.88rem; border: 1px dashed var(--border); border-radius: var(--radius); }
+
+.footer { max-width: 780px; margin: 0 auto; padding: 0 1.25rem 3rem; color: var(--text-muted); font-size: 0.78rem; text-align: center; }
+.footer code { font-family: var(--font-mono); background: var(--surface); padding: 0.1rem 0.4rem; border-radius: 4px; }
+.download-log-btn { margin-top: 0.8rem; font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.05em; color: var(--text-muted); background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 0.45rem 1rem; cursor: pointer; }
+.download-log-btn:hover { color: var(--text); border-color: #4a4a54; }
+.log-status { font-family: var(--font-mono); font-size: 0.7rem; margin: 0.4rem 0 0.2rem; color: var(--accent-2); }
+
+/* ---- Session overlay ---- */
+.session-overlay { position: fixed; inset: 0; background: #0a0a0dee; backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; padding: 1.1rem; z-index: 50; opacity: 1; transition: opacity 0.18s ease; }
+.session-overlay.hidden { opacity: 0; pointer-events: none; }
+.session-card { width: 100%; max-width: 420px; max-height: 92vh; overflow-y: auto; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 1.6rem 1.4rem 1.8rem; text-align: center; animation: card-in 0.22s ease; }
+@keyframes card-in { from { opacity: 0; transform: translateY(10px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+.session-close { display: block; margin: 0 0 0.7rem auto; background: none; border: none; color: var(--text-muted); font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.08em; cursor: pointer; padding: 0.3rem 0.5rem; }
+.session-close:hover { color: var(--text); }
+.session-eyebrow { font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.18em; color: var(--text-muted); margin: 0 0 0.3rem; }
+.session-title { font-family: var(--font-display); font-size: 1.9rem; line-height: 1.05; color: var(--text); margin: 0 0 1.3rem; }
+
+.stepper-row { display: flex; align-items: center; justify-content: space-between; padding: 0.65rem 0.2rem; border-bottom: 1px solid var(--border); }
+.stepper-row:last-of-type { border-bottom: none; }
+.stepper-label { font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted); text-align: left; }
+.stepper-controls { display: flex; align-items: center; gap: 0.8rem; }
+.stepper-btn { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface-raised); color: var(--text); font-size: 1.1rem; line-height: 1; cursor: pointer; display: grid; place-items: center; transition: transform 0.1s ease, border-color 0.1s ease; }
+.stepper-btn:hover { border-color: var(--accent-2); }
+.stepper-btn:active { transform: scale(0.9); }
+.stepper-value { font-family: var(--font-mono); font-size: 1rem; min-width: 2.4ch; text-align: center; }
+
+.session-primary-btn { width: 100%; margin-top: 1.5rem; padding: 0.9rem; border-radius: 10px; border: none; background: var(--accent); color: #14100c; font-family: var(--font-mono); font-size: 0.82rem; letter-spacing: 0.08em; cursor: pointer; transition: filter 0.15s ease; }
+.session-primary-btn:hover { filter: brightness(1.08); }
+.session-primary-btn:active { filter: brightness(0.94); }
+.session-secondary-btn { width: 100%; margin-top: 0.55rem; padding: 0.68rem; border-radius: 10px; border: 1px solid var(--border); background: transparent; color: var(--text-muted); font-family: var(--font-mono); font-size: 0.75rem; letter-spacing: 0.06em; cursor: pointer; }
+.session-secondary-btn:hover { color: var(--text); border-color: #4a4a54; }
+
+.ring-wrap { position: relative; width: 200px; height: 200px; margin: 0.4rem auto 1.1rem; border-radius: 50%; background: conic-gradient(var(--accent) calc(var(--progress, 0) * 360deg), var(--surface-raised) 0deg); display: grid; place-items: center; transition: background 0.25s ease; }
+.ring-wrap.rest-ring { background: conic-gradient(var(--accent-2) calc(var(--progress, 0) * 360deg), var(--surface-raised) 0deg); }
+.ring-inner { width: 168px; height: 168px; border-radius: 50%; background: var(--surface); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.15rem; }
+.ring-big-number { font-family: var(--font-display); font-size: 3.3rem; line-height: 1; color: var(--text); }
+.ring-sub-label { font-family: var(--font-mono); font-size: 0.7rem; letter-spacing: 0.1em; color: var(--text-muted); }
+.ring-inner.pulse { animation: ring-pulse 0.22s ease; }
+@keyframes ring-pulse { 0% { transform: scale(1); } 40% { transform: scale(1.06); } 100% { transform: scale(1); } }
+
+.ring-wrap.lifting-ring { background: conic-gradient(var(--accent) 0deg, var(--accent) 360deg); }
+.ring-inner.breathing { animation: breathe 2.4s ease-in-out infinite; }
+@keyframes breathe {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 var(--accent-soft); }
+  50% { transform: scale(1.035); box-shadow: 0 0 0 12px transparent; }
+}
+.lifting-hint { color: var(--text-muted); font-size: 0.85rem; margin: 0 0 0.4rem; }
+
+.rep-tap-btn { width: 100%; padding: 1rem; border-radius: 12px; border: none; background: var(--accent); color: #14100c; font-family: var(--font-mono); font-size: 0.9rem; letter-spacing: 0.06em; cursor: pointer; transition: transform 0.08s ease, filter 0.15s ease; }
+.rep-tap-btn:hover { filter: brightness(1.08); }
+.rep-tap-btn:active { transform: scale(0.97); }
+
+.session-mini-row { display: flex; gap: 0.55rem; margin-top: 0.55rem; }
+.session-mini-row .session-secondary-btn { margin-top: 0; }
+
+.set-progress-dots { display: flex; justify-content: center; gap: 0.4rem; margin-bottom: 1rem; }
+.set-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--border); transition: background 0.2s ease, transform 0.2s ease; }
+.set-dot.is-complete { background: var(--accent-2); }
+.set-dot.is-current { background: var(--accent); transform: scale(1.3); }
+
+.ring-wrap.urgent .ring-inner { animation: urgent-pulse 0.6s ease infinite; }
+@keyframes urgent-pulse { 0%, 100% { box-shadow: 0 0 0 0 var(--accent-soft); } 50% { box-shadow: 0 0 0 10px transparent; } }
+
+.checkmark-burst { font-size: 3.2rem; animation: burst-in 0.35s cubic-bezier(0.2, 1.4, 0.4, 1); }
+@keyframes burst-in { from { opacity: 0; transform: scale(0.3) rotate(-10deg); } to { opacity: 1; transform: scale(1) rotate(0deg); } }
+
+@media (prefers-reduced-motion: reduce) { .session-card, .ring-inner.pulse, .ring-inner.breathing, .checkmark-burst, .ring-wrap.urgent .ring-inner { animation: none; } }
+@media (max-width: 420px) { .ring-wrap { width: 178px; height: 178px; } .ring-inner { width: 148px; height: 148px; } .ring-big-number { font-size: 2.9rem; } }
+
+/* ---- Form buttons on exercise rows ---- */
+.form-btn { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--border); background: var(--surface); color: var(--text-muted); font-size: 0.85rem; cursor: pointer; display: grid; place-items: center; transition: border-color 0.15s ease, color 0.15s ease; }
+.form-btn:hover { border-color: var(--accent-2); color: var(--accent-2); }
+
+/* ---- Form demo overlay ---- */
+.form-overlay { position: fixed; inset: 0; background: #0a0a0dee; backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; padding: 1.1rem; z-index: 55; opacity: 1; transition: opacity 0.18s ease; }
+.form-overlay.hidden { opacity: 0; pointer-events: none; }
+.form-card { width: 100%; max-width: 380px; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 1.4rem 1.4rem 1.6rem; text-align: center; animation: card-in 0.22s ease; }
+.form-figure-wrap { width: 100%; max-width: 220px; margin: 0.6rem auto 0.8rem; background: var(--surface-raised); border: 1px solid var(--border); border-radius: 14px; padding: 0.6rem; }
+.form-figure { width: 100%; height: auto; display: block; }
+.form-figure line, .form-figure circle.fig-head { stroke: var(--accent-2); stroke-width: 5; stroke-linecap: round; fill: none; }
+.form-figure circle.fig-head { fill: var(--accent-2); stroke: none; }
+.form-figure circle.fig-hand, .form-figure circle.fig-foot { fill: var(--accent); }
+.form-cue { color: var(--text-muted); font-size: 0.88rem; margin: 0.4rem 0 0; text-align: left; }
+
+.form-anim--press #arm-grp { animation: pat-arm-extend 1.6s ease-in-out infinite; }
+.form-anim--fly #arm-grp { animation: pat-arm-swing 1.8s ease-in-out infinite; }
+.form-anim--fly #arm-grp-l { animation: pat-arm-swing-l 1.8s ease-in-out infinite; }
+.form-anim--pull #arm-grp { animation: pat-arm-pull 1.7s ease-in-out infinite; }
+.form-anim--raise #arm-grp { animation: pat-arm-swing 1.6s ease-in-out infinite; }
+.form-anim--overhead #arm-grp { animation: pat-arm-overhead 1.7s ease-in-out infinite; }
+.form-anim--curl #forearm-grp { animation: pat-elbow-curl 1.4s ease-in-out infinite; }
+.form-anim--pushdown #forearm-grp { animation: pat-elbow-push 1.4s ease-in-out infinite; }
+.form-anim--hinge #torso-grp { animation: pat-torso-hinge 2s ease-in-out infinite; }
+.form-anim--squat #torso-grp { animation: pat-squat 2s ease-in-out infinite; }
+.form-anim--calf #foot-grp { animation: pat-calf-raise 1.4s ease-in-out infinite; }
+.form-anim--lying-situp #torso-grp { animation: pat-situp 2s ease-in-out infinite; }
+.form-anim--lying-legraise #legs-grp { animation: pat-legraise 2s ease-in-out infinite; }
+.form-anim--plank .fig-body { animation: pat-plank-hold 2.4s ease-in-out infinite; }
+
+@keyframes pat-arm-extend { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-70deg); } }
+@keyframes pat-arm-swing { 0%, 100% { transform: rotate(75deg); } 50% { transform: rotate(-15deg); } }
+@keyframes pat-arm-swing-l { 0%, 100% { transform: rotate(-75deg); } 50% { transform: rotate(15deg); } }
+@keyframes pat-arm-pull { 0%, 100% { transform: rotate(-80deg); } 50% { transform: rotate(10deg); } }
+@keyframes pat-arm-overhead { 0%, 100% { transform: rotate(-10deg); } 50% { transform: rotate(-165deg); } }
+@keyframes pat-elbow-curl { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-110deg); } }
+@keyframes pat-elbow-push { 0%, 100% { transform: rotate(-90deg); } 50% { transform: rotate(0deg); } }
+@keyframes pat-torso-hinge { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(95deg); } }
+@keyframes pat-squat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(38px); } }
+@keyframes pat-calf-raise { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-25deg); } }
+@keyframes pat-situp { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(75deg); } }
+@keyframes pat-legraise { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-65deg); } }
+@keyframes pat-plank-hold { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .form-card { animation: none; }
+  [class*="form-anim--"] #arm-grp, [class*="form-anim--"] #arm-grp-l, [class*="form-anim--"] #torso-grp,
+  [class*="form-anim--"] #forearm-grp, [class*="form-anim--"] #legs-grp, [class*="form-anim--"] #foot-grp,
+  [class*="form-anim--"] .fig-body { animation: none; }
+}
+</style>
+</head>
+<body>
+
+  <header class="hero">
+    <p class="hero__eyebrow">MON&nbsp;&mdash;&nbsp;SUN &middot; 7-DAY SPLIT</p>
+    <h1 class="hero__title">WEEKLY<br />LOAD</h1>
+    <p class="hero__sub">One muscle group a day. Run every morning it isn't Sunday. No shortcuts, no guessing what's next.</p>
+    <div class="hero__run">
+      <span class="run-dot"></span>
+      <span>Morning Run &mdash; every day this plan is loaded, except rest day</span>
+    </div>
+  </header>
+
+  <nav class="bar" aria-label="Choose a day">
+    <div class="bar__rail"></div>
+    <div class="bar__plates" id="day-tabs"></div>
+  </nav>
+
+  <main class="panel" id="panel"></main>
+
+  <footer class="footer">
+    <p>Works fully offline once loaded — no server, no account required. Add this page to your home screen for one-tap access.</p>
+    <button class="download-log-btn" id="download-log-btn">⬇ Download Log (CSV)</button>
+  </footer>
+
+  <div class="session-overlay hidden" id="session-overlay" role="dialog" aria-modal="true" aria-label="Exercise session">
+    <div class="session-card" id="session-card"></div>
+  </div>
+
+  <div class="form-overlay hidden" id="form-overlay" role="dialog" aria-modal="true" aria-label="Exercise form demo">
+    <div class="form-card" id="form-card"></div>
+  </div>
+
+<script>
+// ---------------------------------------------------------------------
+// All data lives here — no network calls, no backend. Edit this object
+// directly to change the plan; reload the page to see changes.
+// ---------------------------------------------------------------------
+const DAILY_MORNING_ROUTINE = {
+  name: "Morning Run",
+  days: ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday"],
+};
+
+const WEEK_PLAN = [
+  { day_key: "monday", day_name: "Monday", focus: "Chest", rest_day: false, exercises: [
+    "Incline Smith Machine Press", "Flat Smith Machine Press", "Decline Smith Machine Press",
+    "Straight-Out Cable Fly", "High-to-Low Cable Fly", "Low-to-High Cable Fly", "Seated Machine Chest Press",
+  ]},
+  { day_key: "tuesday", day_name: "Tuesday", focus: "Core", rest_day: false, exercises: [
+    "Decline Situps", "Crossover Crunch", "Lying Leg Raise", "Plank", "Side Planks", "Lateral Leg Raises",
+  ]},
+  { day_key: "wednesday", day_name: "Wednesday", focus: "Back", rest_day: false, exercises: [
+    "Wide Grip Lat Pulldowns", "Neutral Grip Lat Pulldowns", "Barbell Deadlift", "Bent Over Barbell Row", "Single Arm Dumbbell Row",
+  ]},
+  { day_key: "thursday", day_name: "Thursday", focus: "Shoulders", rest_day: false, exercises: [
+    "Front Dumbbell Raise", "Lateral Raise", "Arnold Press", "Seated Barbell Overhead Press", "Bent Over Rear Delt Fly",
+  ]},
+  { day_key: "friday", day_name: "Friday", focus: "Arms", rest_day: false, exercises: [
+    "Bicep Curl", "Reverse Barbell Curl", "Cross Body Hammer Curl", "Hammer Curl", "Cable Triceps Rope Pushdown",
+  ]},
+  { day_key: "saturday", day_name: "Saturday", focus: "Legs", rest_day: false, exercises: [
+    "Leg Extension Machine", "Barbell / Machine Hip Thrust", "Dumbbell Goblet Squat", "Seated Calf Raise Machine", "Lying Leg Curl Machine",
+  ]},
+  { day_key: "sunday", day_name: "Sunday", focus: "Rest Day", rest_day: true, exercises: ["Recovery & Hydration"] },
+];
+
+const JS_DAY_INDEX_TO_KEY = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+
+// ---------------------------------------------------------------------
+// Form demos — a small stick-figure animation per movement pattern,
+// plus a one-line form cue. Several exercises share a pattern since
+// the visual cue (what joint moves, which direction) is the same.
+// Pure CSS/SVG — no images or video, so it works fully offline.
+// ---------------------------------------------------------------------
+const EXERCISE_FORM = {
+  "Incline Smith Machine Press": { pattern: "press", cue: "Press up and slightly back, in line with your upper chest. Keep shoulder blades pinned to the bench." },
+  "Flat Smith Machine Press": { pattern: "press", cue: "Bar path travels straight up over your mid-chest. Elbows track under wrists, not flared to 90°." },
+  "Decline Smith Machine Press": { pattern: "press", cue: "Press up and slightly forward toward your lower chest. Keep your core braced." },
+  "Seated Machine Chest Press": { pattern: "press", cue: "Push handles forward until arms are extended, without locking elbows hard. Control the return." },
+  "Straight-Out Cable Fly": { pattern: "fly", cue: "Sweep hands together in a wide arc, elbows softly bent the whole time. Squeeze at the center." },
+  "High-to-Low Cable Fly": { pattern: "fly", cue: "Pull from above your head down to your hips in a smooth arc — like closing a book." },
+  "Low-to-High Cable Fly": { pattern: "fly", cue: "Pull from low at your hips up and across to shoulder height, arcing the whole way." },
+  "Decline Situps": { pattern: "lying-situp", cue: "Curl your ribs toward your hips — lead with your chest, not your neck." },
+  "Crossover Crunch": { pattern: "lying-situp", cue: "Rotate and bring shoulder toward the opposite knee. Small, controlled range." },
+  "Lying Leg Raise": { pattern: "lying-legraise", cue: "Keep a slight knee bend and lower back pressed down. Raise legs to vertical." },
+  "Lateral Leg Raises": { pattern: "lying-legraise", cue: "Lift the top leg straight up, hips stacked, no rocking backward." },
+  "Plank": { pattern: "plank", cue: "One straight line from shoulders to heels. Brace your core, don't let hips sag or pike." },
+  "Side Planks": { pattern: "plank", cue: "Stack hips and shoulders vertically, body in one line. Hips lifted, not sagging." },
+  "Wide Grip Lat Pulldowns": { pattern: "pull", cue: "Pull the bar down to your upper chest, elbows driving down and back." },
+  "Neutral Grip Lat Pulldowns": { pattern: "pull", cue: "Pull handles down to your chest, elbows close to your sides." },
+  "Bent Over Barbell Row": { pattern: "hinge", cue: "Hinge at the hips, flat back. Pull the bar to your lower ribs, elbows close." },
+  "Single Arm Dumbbell Row": { pattern: "pull", cue: "Pull elbow straight back past your ribs, keep torso still and square." },
+  "Barbell Deadlift": { pattern: "hinge", cue: "Hinge at the hips with a flat back, bar close to your shins, drive through your heels." },
+  "Front Dumbbell Raise": { pattern: "raise", cue: "Raise arm to about shoulder height with a slight elbow bend. No swinging or momentum." },
+  "Lateral Raise": { pattern: "raise", cue: "Lift out to the side to shoulder height, leading with your elbows, not your hands." },
+  "Bent Over Rear Delt Fly": { pattern: "hinge", cue: "Hinge forward, then sweep arms out to the sides, squeezing shoulder blades together." },
+  "Arnold Press": { pattern: "overhead", cue: "Rotate palms out as you press overhead, finishing with arms extended above your ears." },
+  "Seated Barbell Overhead Press": { pattern: "overhead", cue: "Press straight up, bar path just in front of your face, finish over the crown of your head." },
+  "Bicep Curl": { pattern: "curl", cue: "Curl at the elbow only — keep upper arm pinned to your side, no swinging." },
+  "Reverse Barbell Curl": { pattern: "curl", cue: "Palms face down, curl at the elbow, keep wrists locked and neutral." },
+  "Cross Body Hammer Curl": { pattern: "curl", cue: "Neutral grip, curl up and across toward the opposite shoulder." },
+  "Hammer Curl": { pattern: "curl", cue: "Neutral grip (thumbs up), curl straight up with elbow pinned to your side." },
+  "Cable Triceps Rope Pushdown": { pattern: "pushdown", cue: "Keep elbows pinned at your sides, extend forearms down and slightly apart at the bottom." },
+  "Leg Extension Machine": { pattern: "squat", cue: "Extend knees to straighten legs, pause briefly, lower with control — don't let the stack slam." },
+  "Barbell / Machine Hip Thrust": { pattern: "squat", cue: "Drive hips up until torso and thighs form a straight line, squeeze glutes at the top." },
+  "Dumbbell Goblet Squat": { pattern: "squat", cue: "Sit hips back and down, chest up, knees tracking over your toes." },
+  "Seated Calf Raise Machine": { pattern: "calf", cue: "Push through the balls of your feet, rise high, then lower for a full stretch." },
+  "Lying Leg Curl Machine": { pattern: "squat", cue: "Curl heels toward your glutes, keep hips pressed into the pad, control the negative." },
+};
+
+function buildFormFigure(pattern) {
+  const lying = pattern === "lying-situp" || pattern === "lying-legraise" || pattern === "plank";
+
+  if (lying) {
+    // Side view, lying on back: head at left, hips as the pivot, legs to the right.
+    return `
+    <svg class="form-figure form-anim--${pattern}" viewBox="0 0 220 160" xmlns="http://www.w3.org/2000/svg">
+      <line x1="10" y1="140" x2="210" y2="140" stroke="var(--border)" stroke-width="2" stroke-dasharray="4 5"/>
+      <g class="fig-body">
+        <g id="torso-grp" style="transform-origin:110px 110px;">
+          <line x1="55" y1="110" x2="110" y2="110"/>
+          <circle class="fig-head" cx="40" cy="110" r="13"/>
+        </g>
+        <g id="legs-grp" style="transform-origin:110px 110px;">
+          <line x1="110" y1="110" x2="180" y2="110"/>
+          <circle class="fig-foot" cx="180" cy="110" r="4"/>
+        </g>
+      </g>
+    </svg>`;
+  }
+
+  return `
+  <svg class="form-figure form-anim--${pattern}" viewBox="0 0 200 220" xmlns="http://www.w3.org/2000/svg">
+    <g class="fig-body">
+      <g id="torso-grp" style="transform-origin:100px 115px;">
+        <circle class="fig-head" cx="100" cy="30" r="13"/>
+        <line x1="100" y1="43" x2="100" y2="115"/>
+        <g id="arm-grp" style="transform-origin:118px 50px;">
+          <line x1="118" y1="50" x2="118" y2="80"/>
+          <g id="forearm-grp" style="transform-origin:118px 80px;">
+            <line x1="118" y1="80" x2="118" y2="108"/>
+            <circle class="fig-hand" cx="118" cy="108" r="4"/>
+          </g>
+        </g>
+        <g id="arm-grp-l" style="transform-origin:82px 50px;">
+          <line x1="82" y1="50" x2="82" y2="80"/>
+          <circle class="fig-hand" cx="82" cy="80" r="4"/>
+        </g>
+      </g>
+      <g id="legs-grp" style="transform-origin:100px 115px;">
+        <line x1="92" y1="115" x2="96" y2="157"/>
+        <line x1="96" y1="157" x2="92" y2="198"/>
+        <line x1="108" y1="115" x2="104" y2="157"/>
+        <g id="foot-grp" style="transform-origin:104px 157px;">
+          <line x1="104" y1="157" x2="108" y2="198"/>
+          <circle class="fig-foot" cx="108" cy="198" r="4"/>
+        </g>
+      </g>
+    </g>
+  </svg>`;
+}
+
+function openFormDemo(name) {
+  const info = EXERCISE_FORM[name];
+  const formOverlay = document.getElementById("form-overlay");
+  const formCard = document.getElementById("form-card");
+  if (!info) return;
+  formCard.innerHTML = `
+    <button class="session-close" id="form-close-btn">CLOSE ✕</button>
+    <p class="session-eyebrow">FORM CHECK</p>
+    <h3 class="session-title" style="font-size:1.5rem;">${name}</h3>
+    <div class="form-figure-wrap">${buildFormFigure(info.pattern)}</div>
+    <p class="form-cue">${info.cue}</p>
+  `;
+  formCard.querySelector("#form-close-btn").addEventListener("click", closeFormDemo);
+  formOverlay.classList.remove("hidden");
+}
+
+function closeFormDemo() {
+  document.getElementById("form-overlay").classList.add("hidden");
+}
+
+document.getElementById("form-overlay").addEventListener("click", (e) => {
+  if (e.target.id === "form-overlay") closeFormDemo();
+});
+
+// ---------------------------------------------------------------------
+// Persistence — localStorage only, this device only, no account needed.
+// ---------------------------------------------------------------------
+const STORAGE_KEY = "weeklyLoad.completedExercises.v1";
+const SETTINGS_KEY = "weeklyLoad.exerciseSettings.v1";
+
+function loadCompleted() {
+  try { return new Set(JSON.parse(localStorage.getItem(STORAGE_KEY)) || []); }
+  catch { return new Set(); }
+}
+function saveCompleted() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify([...completedExercises]));
+}
+function loadSettings() {
+  try { return JSON.parse(localStorage.getItem(SETTINGS_KEY)) || {}; }
+  catch { return {}; }
+}
+function saveSettings() {
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(exerciseSettings));
+}
+
+const completedExercises = loadCompleted();
+const exerciseSettings = loadSettings(); // remembers last sets/reps/rest per exercise key
+
+// ---------------------------------------------------------------------
+// Workout history — every completed exercise gets appended here.
+// Lives only in this browser's localStorage. The Download Log button
+// exports it as a CSV file you can save, email, or drop into any
+// spreadsheet app whenever you want — no internet connection needed.
+// ---------------------------------------------------------------------
+const HISTORY_KEY = "weeklyLoad.history.v1";
+
+function loadHistory() {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; }
+  catch { return []; }
+}
+function saveHistory(history) {
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+}
+function addHistoryEntry(entry) {
+  const history = loadHistory();
+  history.push(entry);
+  saveHistory(history);
+}
+
+function csvEscape(value) {
+  const str = String(value);
+  return /[",\n]/.test(str) ? `"${str.replace(/"/g, '""')}"` : str;
+}
+
+function downloadLog() {
+  const history = loadHistory();
+  if (history.length === 0) {
+    alert("No completed exercises yet — finish one first, then come back to download your log.");
+    return;
+  }
+  const header = ["Date", "Day", "Exercise", "Sets", "Reps", "Timestamp"];
+  const rows = history.map((e) => [e.date, e.day, e.exercise, e.sets, e.reps, e.timestamp]);
+  const csv = [header, ...rows].map((row) => row.map(csvEscape).join(",")).join("\n");
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `workout-log-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+document.getElementById("download-log-btn").addEventListener("click", downloadLog);
+
+const dayTabsEl = document.getElementById("day-tabs");
+const panelEl = document.getElementById("panel");
+const overlayEl = document.getElementById("session-overlay");
+const cardEl = document.getElementById("session-card");
+
+let activeDay = JS_DAY_INDEX_TO_KEY[new Date().getDay()];
+if (!WEEK_PLAN.find((d) => d.day_key === activeDay)) activeDay = WEEK_PLAN[0].day_key;
+
+function renderTabs() {
+  dayTabsEl.innerHTML = "";
+  WEEK_PLAN.forEach((day) => {
+    const btn = document.createElement("button");
+    btn.className = "plate-tab" + (day.rest_day ? " is-rest" : "");
+    btn.dataset.day = day.day_key;
+    btn.setAttribute("role", "tab");
+    btn.setAttribute("aria-selected", day.day_key === activeDay ? "true" : "false");
+    btn.innerHTML = `
+      <span class="plate-tab__day">${day.day_name.slice(0, 3).toUpperCase()}</span>
+      <span class="plate-tab__focus">${day.focus}</span>
+    `;
+    btn.addEventListener("click", () => { activeDay = day.day_key; renderDay(activeDay); updateActiveTab(); });
+    dayTabsEl.appendChild(btn);
+  });
+  updateActiveTab();
+}
+
+function updateActiveTab() {
+  [...dayTabsEl.children].forEach((btn) => {
+    const isActive = btn.dataset.day === activeDay;
+    btn.classList.toggle("is-active", isActive);
+    btn.setAttribute("aria-selected", isActive ? "true" : "false");
+  });
+}
+
+function renderDay(dayKey) {
+  const day = WEEK_PLAN.find((d) => d.day_key === dayKey);
+  if (!day) return;
+  const hasMorningRun = dayKey !== "sunday";
+
+  const listMarkup = day.rest_day
+    ? `<li class="rest-note">🧘 ${day.exercises[0]}</li>`
+    : day.exercises.map((name, i) => {
+        const done = completedExercises.has(`${dayKey}:${i}`);
+        return `
+        <li class="exercise-row${done ? " is-done" : ""}">
+          <span class="plate-badge">${i + 1}</span>
+          <span class="exercise-name">${name}</span>
+          ${done ? `<span class="exercise-status">DONE ✓</span>` : ""}
+          ${EXERCISE_FORM[name] ? `<button class="form-btn" data-form-name="${name}" aria-label="Watch form for ${name}" title="Watch form">▶</button>` : ""}
+          <button class="start-btn" data-index="${i}">${done ? "Redo" : "Start"}</button>
+        </li>`;
+      }).join("");
+
+  const anyDoneToday = day.exercises.some((_, i) => completedExercises.has(`${dayKey}:${i}`));
+
+  panelEl.innerHTML = `
+    <section class="day-card" aria-live="polite">
+      <div class="day-card__header">
+        <div>
+          <p class="day-card__day">${day.day_name.toUpperCase()}</p>
+          <h2 class="day-card__focus">${day.focus}</h2>
+        </div>
+        <div class="day-card__meta">
+          ${hasMorningRun ? "MORNING RUN &middot; " : ""}${day.exercises.length} ${day.rest_day ? "NOTE" : "MOVEMENT" + (day.exercises.length > 1 ? "S" : "")}
+          ${!day.rest_day && anyDoneToday ? `<br/><button class="day-card__reset" id="reset-day-btn">Reset today's progress</button>` : ""}
+        </div>
+      </div>
+      <ul class="exercise-list">${listMarkup}</ul>
+    </section>
+  `;
+
+  if (!day.rest_day) {
+    panelEl.querySelectorAll(".start-btn").forEach((btn) => {
+      btn.addEventListener("click", () => openSession(dayKey, Number(btn.dataset.index)));
+    });
+    panelEl.querySelectorAll(".form-btn").forEach((btn) => {
+      btn.addEventListener("click", () => openFormDemo(btn.dataset.formName));
+    });
+    const resetBtn = panelEl.querySelector("#reset-day-btn");
+    if (resetBtn) {
+      resetBtn.addEventListener("click", () => {
+        day.exercises.forEach((_, i) => completedExercises.delete(`${dayKey}:${i}`));
+        saveCompleted();
+        renderDay(dayKey);
+      });
+    }
+  }
+}
+
+// ---------------------------------------------------------------------
+// Session — setup, active reps, rest countdown, completion
+// ---------------------------------------------------------------------
+let session = null;
+
+function openSession(dayKey, exerciseIndex) {
+  const day = WEEK_PLAN.find((d) => d.day_key === dayKey);
+  const name = day.exercises[exerciseIndex];
+  const settingsKey = `${dayKey}:${exerciseIndex}`;
+  const remembered = exerciseSettings[settingsKey] || {};
+
+  session = {
+    dayKey, exerciseIndex, name, settingsKey,
+    totalExercises: day.exercises.length,
+    sets: remembered.sets || 3,
+    reps: remembered.reps || 10,
+    restSeconds: remembered.restSeconds || 60,
+    currentSet: 1, currentReps: 0,
+    phase: "setup", timer: null, remaining: 0,
+  };
+
+  overlayEl.classList.remove("hidden");
+  renderSetup();
+}
+
+function closeSession() {
+  if (session && session.timer) clearInterval(session.timer);
+  session = null;
+  overlayEl.classList.add("hidden");
+  cardEl.innerHTML = "";
+}
+
+function persistSessionSettings() {
+  exerciseSettings[session.settingsKey] = { sets: session.sets, reps: session.reps, restSeconds: session.restSeconds };
+  saveSettings();
+}
+
+function renderSetup() {
+  cardEl.innerHTML = `
+    <button class="session-close" id="close-btn">CLOSE ✕</button>
+    <p class="session-eyebrow">SET IT UP</p>
+    <h3 class="session-title">${session.name}</h3>
+    <div class="stepper-row">
+      <span class="stepper-label">SETS</span>
+      <div class="stepper-controls">
+        <button class="stepper-btn" data-field="sets" data-delta="-1">−</button>
+        <span class="stepper-value">${session.sets}</span>
+        <button class="stepper-btn" data-field="sets" data-delta="1">+</button>
+      </div>
+    </div>
+    <div class="stepper-row">
+      <span class="stepper-label">REPS PER SET</span>
+      <div class="stepper-controls">
+        <button class="stepper-btn" data-field="reps" data-delta="-1">−</button>
+        <span class="stepper-value">${session.reps}</span>
+        <button class="stepper-btn" data-field="reps" data-delta="1">+</button>
+      </div>
+    </div>
+    <div class="stepper-row">
+      <span class="stepper-label">REST BETWEEN SETS</span>
+      <div class="stepper-controls">
+        <button class="stepper-btn" data-field="restSeconds" data-delta="-15">−</button>
+        <span class="stepper-value">${session.restSeconds}s</span>
+        <button class="stepper-btn" data-field="restSeconds" data-delta="15">+</button>
+      </div>
+    </div>
+    <button class="session-primary-btn" id="begin-btn">BEGIN SET 1 OF ${session.sets}</button>
+  `;
+  cardEl.querySelector("#close-btn").addEventListener("click", closeSession);
+  cardEl.querySelector("#begin-btn").addEventListener("click", () => {
+    persistSessionSettings();
+    session.phase = "active";
+    renderActive();
+  });
+  cardEl.querySelectorAll(".stepper-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const field = btn.dataset.field;
+      const delta = Number(btn.dataset.delta);
+      const limits = { sets: [1, 12], reps: [1, 50], restSeconds: [15, 240] };
+      session[field] = Math.min(limits[field][1], Math.max(limits[field][0], session[field] + delta));
+      renderSetup();
+    });
+  });
+}
+
+function renderActive() {
+  const dots = Array.from({ length: session.sets }, (_, i) => {
+    const setNum = i + 1;
+    let cls = "set-dot";
+    if (setNum < session.currentSet) cls += " is-complete";
+    if (setNum === session.currentSet) cls += " is-current";
+    return `<span class="${cls}"></span>`;
+  }).join("");
+
+  cardEl.innerHTML = `
+    <button class="session-close" id="close-btn">CLOSE ✕</button>
+    <p class="session-eyebrow">${session.name.toUpperCase()}</p>
+    <h3 class="session-title">SET ${session.currentSet} OF ${session.sets}</h3>
+    <div class="set-progress-dots">${dots}</div>
+    <div class="ring-wrap lifting-ring">
+      <div class="ring-inner breathing">
+        <span class="ring-big-number">${session.reps}</span>
+        <span class="ring-sub-label">TARGET REPS</span>
+      </div>
+    </div>
+    <p class="lifting-hint">Lift the set at your own pace. Tap below the moment you rack it.</p>
+    <button class="session-primary-btn" id="set-done-btn">✅ SET DONE — START REST</button>
+    <div class="session-mini-row">
+      <button class="session-secondary-btn" data-field="reps" data-delta="1">+1 TARGET REP</button>
+      <button class="session-secondary-btn" data-field="reps" data-delta="-1">−1 TARGET REP</button>
+    </div>
+    <div class="session-mini-row">
+      <button class="session-secondary-btn" data-field="sets" data-delta="1">ADD A SET</button>
+      <button class="session-secondary-btn" data-field="sets" data-delta="-1">REMOVE A SET</button>
+    </div>
+  `;
+  cardEl.querySelector("#close-btn").addEventListener("click", closeSession);
+  cardEl.querySelector("#set-done-btn").addEventListener("click", finishSet);
+  cardEl.querySelectorAll("[data-field='reps']").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const delta = Number(btn.dataset.delta);
+      session.reps = Math.min(50, Math.max(1, session.reps + delta));
+      renderActive();
+    });
+  });
+  cardEl.querySelectorAll("[data-field='sets']").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const delta = Number(btn.dataset.delta);
+      session.sets = Math.min(12, Math.max(session.currentSet, session.sets + delta));
+      renderActive();
+    });
+  });
+}
+
+function finishSet() {
+  if (session.currentSet >= session.sets) {
+    renderComplete();
+  } else {
+    session.phase = "resting";
+    session.remaining = session.restSeconds;
+    renderResting();
+    session.timer = setInterval(tickRest, 1000);
+  }
+}
+
+function renderResting() {
+  const progress = session.remaining / session.restSeconds;
+  const urgent = session.remaining <= 3;
+  cardEl.innerHTML = `
+    <button class="session-close" id="close-btn">CLOSE ✕</button>
+    <p class="session-eyebrow">RESTING</p>
+    <h3 class="session-title">NEXT: SET ${session.currentSet + 1} OF ${session.sets}</h3>
+    <div class="ring-wrap rest-ring${urgent ? " urgent" : ""}" style="--progress: ${progress}">
+      <div class="ring-inner" id="ring-inner">
+        <span class="ring-big-number">${session.remaining}</span>
+        <span class="ring-sub-label">${urgent ? "GET READY" : "SECONDS LEFT"}</span>
+      </div>
+    </div>
+    <button class="session-secondary-btn" id="skip-rest-btn">SKIP REST</button>
+    <div class="session-mini-row">
+      <button class="session-secondary-btn" id="add-rest-btn">+15s REST</button>
+    </div>
+  `;
+  cardEl.querySelector("#close-btn").addEventListener("click", closeSession);
+  cardEl.querySelector("#skip-rest-btn").addEventListener("click", advanceToNextSet);
+  cardEl.querySelector("#add-rest-btn").addEventListener("click", () => {
+    session.remaining += 15;
+    session.restSeconds += 15;
+    renderResting();
+  });
+}
+
+function tickRest() {
+  session.remaining -= 1;
+  if (session.remaining <= 0) {
+    clearInterval(session.timer);
+    session.timer = null;
+    advanceToNextSet();
+  } else {
+    renderResting();
+  }
+}
+
+function advanceToNextSet() {
+  if (session.timer) clearInterval(session.timer);
+  session.timer = null;
+  session.currentSet += 1;
+  session.currentReps = 0;
+  session.phase = "active";
+  renderActive();
+}
+
+function renderComplete() {
+  completedExercises.add(`${session.dayKey}:${session.exerciseIndex}`);
+  saveCompleted();
+  const hasNext = session.exerciseIndex < session.totalExercises - 1;
+  const now = new Date();
+  const dayFull = WEEK_PLAN.find((d) => d.day_key === session.dayKey).day_name;
+
+  addHistoryEntry({
+    date: now.toLocaleDateString(),
+    day: dayFull,
+    exercise: session.name,
+    sets: session.sets,
+    reps: session.reps,
+    timestamp: now.toISOString(),
+  });
+
+  cardEl.innerHTML = `
+    <button class="session-close" id="close-btn">CLOSE ✕</button>
+    <p class="session-eyebrow">DONE</p>
+    <div class="checkmark-burst">💪</div>
+    <h3 class="session-title">${session.name} complete</h3>
+    <p class="stepper-label" style="text-align:center; display:block; margin-bottom:0.4rem;">
+      ${session.sets} sets &times; ${session.reps} reps logged
+    </p>
+    <p class="log-status">Added to your log ✓ — tap Download Log anytime to export it</p>
+    ${hasNext ? `<button class="session-primary-btn" id="next-ex-btn">START NEXT EXERCISE</button>` : ""}
+    <button class="session-secondary-btn" id="back-btn">BACK TO DAY</button>
+  `;
+
+  cardEl.querySelector("#close-btn").addEventListener("click", closeSession);
+  cardEl.querySelector("#back-btn").addEventListener("click", () => { closeSession(); renderDay(activeDay); });
+  if (hasNext) {
+    cardEl.querySelector("#next-ex-btn").addEventListener("click", () => {
+      const dayKey = session.dayKey, nextIndex = session.exerciseIndex + 1;
+      closeSession();
+      renderDay(activeDay);
+      openSession(dayKey, nextIndex);
+    });
+  }
+}
+
+renderTabs();
+renderDay(activeDay);
+
+// Registers only over HTTPS/localhost — silently does nothing on file://,
+// which is expected and fine; the app works either way.
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch(() => {
+      // Not on HTTPS (e.g. opened as a local file) — app still works normally.
+    });
+  });
+}
+</script>
+</body>
+</html>
